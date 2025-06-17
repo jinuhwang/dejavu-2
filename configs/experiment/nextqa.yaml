@@ -1,0 +1,24 @@
+# @package _global_
+
+# to execute this experiment run:
+# python train.py experiment=example
+
+defaults:
+  - override /data: nextqa
+  - override /model/net: clip-vit-large-patch14
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+tags: ["nextqa"]
+
+seed: 12345
+
+model:
+  loss:
+    target_reuse_rate: 0.8
+    hloss_scaler: 0.0
+
+reuse_module:
+  decision:
+    layer_pattern: 'ldrl'

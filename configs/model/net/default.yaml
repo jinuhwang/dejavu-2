@@ -1,0 +1,35 @@
+_target_: src.models.components.reusevit.ReuseModel
+
+base_model_name: openai/clip-vit-base-patch16
+model_type: clip
+reuse_modules:
+  - ${reuse_module}
+  - ${reuse_module}
+  - ${reuse_module}
+  - ${reuse_module}
+  - ${reuse_module}
+  - ${reuse_module}
+  - ${reuse_module}
+  - ${reuse_module}
+  - ${reuse_module}
+  - ${reuse_module}
+  - ${reuse_module}
+  - ${reuse_module}
+
+blobnet:
+  _target_: src.models.components.blobnet.BlobNet
+  
+  input_shape: [4, 4, 14, 14]
+  e_spatial_kernel_size: [1, 2, 2]
+  e_spatial_channels: [[4, 16], [16, 32], [32, 64]]
+  e_temporal_channels_list: [[4, 4], [4, 4], [4, 4]]
+  e_use_bn: true
+  e_activation: 'relu'
+  d_spatial_channels: [[64, 32], [64, 16], [32, 16]]
+  d_spatial_kernel_size: [1, 2, 2]
+  num_hidden_layers: 1
+  act: 'tanh'
+  num_outputs: 1
+  disable_batchnorm: true
+  
+input_dim: 768

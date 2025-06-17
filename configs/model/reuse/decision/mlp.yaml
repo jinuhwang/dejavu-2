@@ -1,0 +1,9 @@
+_target_: src.models.components.reuse.decision.ReuseMLP
+
+out_dim: 2
+use_norm: False
+initialize: 'adafuse'
+use_reference_type: True
+inner_dim: 160
+layer_pattern: 'lbrlbrl'
+use_compressed_info: true

@@ -1,0 +1,4 @@
+defaults:
+  - default
+
+_target_: src.models.components.reusevit_hard.ReuseViTHard

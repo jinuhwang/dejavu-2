@@ -1,0 +1,5 @@
+_target_: src.models.components.reuse.restoration.MLPRestoration
+
+input_dim: "${model.net.input_dim}"
+disable_bias: true
+inner_dim: 64

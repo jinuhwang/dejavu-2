@@ -1,0 +1,50 @@
+# path to data directory
+root_dir: '/workspace'
+data_dir: '/mnt/raid/jwhwang/dejavu-vldb'
+cache_dir: ${.data_dir}/cache
+diffrate_dir: '${.data_dir}/checkpoints/diffrate'
+
+how2qa:
+  video: ${..data_dir}/dataset/how2qa/video
+  video_transcoded: ${..data_dir}/dataset/how2qa/video_transcoded
+  compressed: ${..data_dir}/dataset/how2qa/compressed_domain
+  diffrate: ${..data_dir}/dataset/how2qa/diffrate
+  feature: ${..data_dir}/dataset/how2qa/feature
+  reuse: ${..data_dir}/dataset/how2qa/reuse
+  splits:
+    train: '${...root_dir}/dataset/how2QA_train_release.csv'
+    test: '${...root_dir}/dataset/how2QA_test_public_release.csv'
+    frozenbilm: '${...root_dir}/dataset/public_val.csv'
+
+msrvtt:
+  video: ${..data_dir}/dataset/msrvtt/video
+  video_transcoded: ${..data_dir}/dataset/msrvtt/video_transcoded
+  compressed: ${..data_dir}/dataset/msrvtt/compressed_domain_1fps
+  diffrate: ${..data_dir}/dataset/msrvtt/diffrate
+  feature: ${..data_dir}/dataset/msrvtt/feature
+  reuse: ${..data_dir}/dataset/msrvtt/reuse
+  splits:
+    train: '${...root_dir}/dataset/MSRVTT_train.9k.csv'
+    test: '${...root_dir}/dataset/MSRVTT_JSFUSION_test.csv'
+  checkpoint: '/mnt/ssd3/CLIP4Clip/ckpts/ckpt_msrvtt_retrieval_looseType/best_hf_model'
+
+
+videoinstruct:
+  video: ${..data_dir}/hdd2/dataset/videoinstruct/activitynet_videos
+  video_transcoded: ${..data_dir}/ssd3/dataset/videoinstruct/video_transcoded
+  feature: ${..data_dir}/ssd4/dataset/videoinstruct/feature
+  msrvtt_feature: ${..data_dir}/ssd3/dataset/videoinstruct/feature/msrvtt
+
+nextqa:
+  video: ${..data_dir}/dataset/nextqa/video
+  video_transcoded: ${..data_dir}/dataset/nextqa/video_transcoded
+  feature: ${..data_dir}/dataset/nextqa/feature
+  reuse: ${..data_dir}/dataset/nextqa/reuse
+  diffrate: ${..data_dir}/dataset/nextqa/diffrate
+  eventful: ${..data_dir}/dataset/nextqa/eventful
+  cmc: ${..data_dir}/dataset/nextqa/cmc
+  splits:
+    train: '${...root_dir}/dataset/nextqa/train.csv'
+    val: '${...root_dir}/dataset/nextqa/val.csv'
+    test: '${...root_dir}/dataset/nextqa/test.csv'
+  map: '${..root_dir}/dataset/nextqa/map_vid_vidorID.json'

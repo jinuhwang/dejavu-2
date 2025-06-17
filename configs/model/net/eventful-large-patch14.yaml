@@ -1,0 +1,7 @@
+defaults:
+  - clip-vit-large-patch14
+  - override /model/reuse/similarity@_global_.reuse_module.similarity: local_l2
+  - override /model/reuse/importance@_global_.reuse_module.importance: none
+  - override /model/reuse/decision@_global_.reuse_module.decision: topk
+  - override /model/reuse/gating@_global_.reuse_module.gating: hard
+  - override /model/reuse/restoration@_global_.reuse_module.restoration: passthrough

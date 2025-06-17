@@ -1,0 +1,4 @@
+_target_: src.models.components.reuse.similarity.CosineSimilarity
+
+exp: 1
+return_norm: false

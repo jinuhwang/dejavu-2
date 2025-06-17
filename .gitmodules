@@ -1,0 +1,3 @@
+[submodule "third_parties/NExT-GQA"]
+	path = third_parties/NExT-GQA
+	url = https://github.com/jinuhwang/NExT-GQA

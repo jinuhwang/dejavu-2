@@ -1,0 +1,9 @@
+defaults:
+  - decision: mlp
+  - similarity: local_cosine
+  - importance: cls
+  - gating: adafuse
+  - restoration: mlp
+  - _self_
+
+_target_: src.models.components.reuse.ReuseModule

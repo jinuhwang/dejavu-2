@@ -1,0 +1,26 @@
+# @package _global_
+
+# to execute this experiment run:
+# python train.py experiment=example
+
+defaults:
+  - override /data: nextqa
+  - override /model/net: eventful-large-patch14
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+tags: ["nextqa", "eventful"]
+
+model:
+  mode: eventful
+  eventful_topk: "${reuse_module.decision.k}"
+
+# reuse_module:
+#   skip_cls: false
+
+data:
+  batch_size: 1
+  test_is_sequential: true
+
+seed: 12345

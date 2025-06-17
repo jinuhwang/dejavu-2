@@ -1,0 +1,46 @@
+_target_: src.models.videoinstruct_module.VideoinstructLitModule
+
+defaults:
+  - net: default
+
+optimizer:
+  _target_: torch.optim.AdamW
+  _partial_: true
+  lr: 0.001
+  weight_decay: 0.0
+
+blobnet_lr: 0.0025
+restoration_lr: 0.0005
+decision_lr: 0.0025
+
+# Loss
+loss:
+  _target_: src.models.components.loss.ReuseLoss
+  use_min_hloss: true
+  use_min_sloss: true
+  sloss_scaler: 1.
+  hloss_scaler: [0, 1.5] # Since VideoChatGPT wants to use second-to-last hidden states
+  rloss_scaler: 0.35
+  max_reuse_per_layer: 0.95
+  rloss_duplicate_final_frame: true
+  target_reuse_rate: 0.5
+rloss_pattern: [False, False, False, True, True, True]
+sloss_pattern: [False, False, False, True, True, True]
+
+scheduler:
+  _target_: torch.optim.lr_scheduler.ExponentialLR
+  _partial_: true
+  gamma: 0.95
+
+# compile model for faster training with pytorch 2.0
+compile: false
+
+gating_hard: false
+
+batch_size: "${data.batch_size}"
+
+dataset: "${data.dataset_str}"
+fps: "${data.fps}"
+test_split: "${data.test_split}"
+base_model_name: "${model.net.base_model_name}"
+dry_run: true

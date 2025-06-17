@@ -1,0 +1,21 @@
+defaults:
+  - default
+
+# TrainDataset
+train_class: src.data.components.msrvtt.MsrvttDataset
+train_split: 'train'
+
+# TestDataset
+val_class: src.data.components.msrvtt.MsrvttDataset
+val_split: 'test'
+
+test_class: src.data.components.msrvtt.MsrvttDataset
+test_split: 'test'
+
+use_start_end: False
+train_sample_rate: 0.25
+test_sample_rate: 0.05
+
+return_compressed: True
+
+dataset_str: msrvtt

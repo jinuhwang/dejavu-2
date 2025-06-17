@@ -1,0 +1,18 @@
+defaults:
+ - default
+
+# TrainDataset
+train_class: src.data.components.how2qa.How2qaDataset
+train_split: 'test'
+
+# TestDataset
+val_class: src.data.components.how2qa.How2qaDataset
+val_split: 'frozenbilm'
+
+use_start_end: False
+train_sample_rate: 0.25
+test_sample_rate: 0.05 # TODO: split dataset
+
+return_compressed: True
+dataset_str: how2qa
+

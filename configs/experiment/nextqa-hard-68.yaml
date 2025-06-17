@@ -1,0 +1,16 @@
+# @package _global_
+
+# to execute this experiment run:
+# python train.py experiment=example
+
+defaults:
+  - nextqa-hard
+
+data:
+  test_refresh_interval: 4
+
+model:
+  reuse_model_name: "68"
+
+
+ckpt_path: ${paths.data_dir}/checkpoints/nextqa/nextqa-68.ckpt

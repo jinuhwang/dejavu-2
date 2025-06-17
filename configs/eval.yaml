@@ -1,0 +1,29 @@
+# @package _global_
+
+defaults:
+  - _self_
+  - data: nextqa # choose datamodule with `test_dataloader()` for evaluation
+  - model/reuse@reuse_module: default
+  - model: reusevit
+  - callbacks: rich_progress_bar
+  - logger: csv
+  - trainer: gpu
+  - paths: default
+  - extras: default
+  - hydra: default
+
+  - experiment: null
+
+  - debug: null
+
+# This doesn't work, probably because _target_ is not overridable like this
+model:
+  net:
+    _target_: src.models.components.reusevit_hard.ReuseViTHard
+
+task_name: "eval"
+
+tags: ["dev"]
+
+# passing checkpoint path is necessary for evaluation
+ckpt_path: null

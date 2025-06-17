@@ -1,0 +1,4 @@
+_target_: src.models.components.reuse.decision.TopKDecision
+
+k: 10
+use_norm: False

@@ -1,0 +1,6 @@
+defaults:
+  - default
+  - override /model/reuse/importance@_global_.reuse_module.importance: mean
+
+base_model_name: google/siglip-base-patch16-224
+model_type: siglip

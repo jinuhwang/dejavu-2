@@ -1,0 +1,35 @@
+defaults:
+  - default
+
+base_model_name: openai/clip-vit-large-patch14
+
+reuse_modules:
+  - ${reuse_module}
+  - ${reuse_module}
+  - ${reuse_module}
+  - ${reuse_module}
+  - ${reuse_module}
+  - ${reuse_module}
+  - ${reuse_module}
+  - ${reuse_module}
+  - ${reuse_module}
+  - ${reuse_module}
+  - ${reuse_module}
+  - ${reuse_module}
+  - ${reuse_module}
+  - ${reuse_module}
+  - ${reuse_module}
+  - ${reuse_module}
+  - ${reuse_module}
+  - ${reuse_module}
+  - ${reuse_module}
+  - ${reuse_module}
+  - ${reuse_module}
+  - ${reuse_module}
+  - ${reuse_module}
+  - ${reuse_module}
+
+blobnet:
+  input_shape: [4, 4, 16, 16]
+
+input_dim: 1024

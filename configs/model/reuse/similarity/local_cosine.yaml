@@ -1,0 +1,4 @@
+_target_: src.models.components.reuse.similarity.LocalCosineSimilarity
+
+exp: 1
+return_norm: false

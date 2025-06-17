@@ -1,0 +1,27 @@
+# @package _global_
+
+# to execute this experiment run:
+# python train.py experiment=example
+
+defaults:
+  - override /data: how2qa
+  - override /model/net: clip-vit-large-patch14
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+tags: ["how2qa"]
+
+trainer:
+  max_epochs: 10
+
+reuse_module:
+  decision:
+    layer_pattern: 'ldrl'
+
+model:
+  loss:
+    hloss_scaler: 0.0
+  blobnet_lr: 0.00125
+  restoration_lr: 0.00025
+  decision_lr: 0.00125

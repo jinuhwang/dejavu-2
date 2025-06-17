@@ -1,0 +1,6 @@
+_target_: src.models.components.reuse.similarity.LowRankCosineSimilarity
+
+exp: 1
+rank: 16
+input_dim: "${model.net.input_dim}"
+return_norm: false
