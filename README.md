@@ -17,6 +17,25 @@ This repository contains artifact for the paper "Déjà Vu: Efficient Video-Lang
    - [CMC](#8-5-cmc)
 9. [Plotting graph](#9-plotting-graph)
 
+## Developer Quickstart (migration notes)
+
+- Default data root: this repo sets `configs/paths/data.yaml:data_dir` to `/mnt/raid/jwhwang/dejavu`. Override at runtime via Hydra, e.g. `paths.data_dir=/your/path`.
+
+- CPU smoke test (fast-dev):
+  - `python src/train.py experiment=nextqa logger=csv trainer=cpu trainer.precision=32 +trainer.fast_dev_run=true`
+
+- Inference utilities:
+  - Wrapper: `from src.inference import InferenceReuseModel` and call it like `ReuseModel.forward_eval`.
+  - Checkpoint remap: `python -m src.scripts.remap_checkpoint input.ckpt output_remapped.pt --report remap_report.json`
+
+- Triton kernels and hard path:
+  - Kernels: `src/models/components/stage_states.py` (Triton). Hard path model: `model/net=clip-vit-large-patch14-hard`.
+  - GPU E2E test (requires CUDA): see `tests/test_integration_real_model.py::test_reusevit_hard_gpu_end_to_end_runs` for a minimal example using warmup caches.
+
+- Tests:
+  - Run all: `pytest -q`
+  - Parity tests validate training/inference consistency and state-dict mapping on CPU; Triton tests run on GPU when available.
+
 ### 1. Prerequisites
 #### 1-1. Clone and build docker image
 ```

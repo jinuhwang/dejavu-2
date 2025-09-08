@@ -1,6 +1,6 @@
 # path to data directory
 root_dir: '/workspace'
-data_dir: '/mnt/raid/jwhwang/dejavu-vldb'
+data_dir: '/mnt/raid/jwhwang/dejavu'
 cache_dir: ${.data_dir}/cache
 diffrate_dir: '${.data_dir}/checkpoints/diffrate'
 

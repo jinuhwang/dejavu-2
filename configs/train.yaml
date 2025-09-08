@@ -48,3 +48,8 @@ ckpt_path: null
 
 # seed for random number generators in pytorch, numpy and python.random
 seed: null
+
+# Evaluate inference model on val at epoch end
+eval_infer:
+  enabled: false
+  max_batches: 1

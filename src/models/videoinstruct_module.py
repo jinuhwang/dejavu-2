@@ -7,6 +7,7 @@ from lightning import LightningModule
 from torchmetrics import MinMetric, MeanMetric
 from ..utils.paths import get_path_manager
 from ..utils.dataset import save_embedding
+from ..inference import InferenceReuseModel
 
 
 class VideoinstructLitModule(LightningModule):
@@ -301,6 +302,94 @@ class VideoinstructLitModule(LightningModule):
         self.val_loss_best(loss)
         self.log("val/loss_best", self.val_loss_best.compute(), sync_dist=True, prog_bar=True)
 
+        # Optional: evaluate inference wrapper on a few val batches and log
+        cfg = getattr(self.hparams, 'eval_infer', None)
+        if cfg is None or not getattr(cfg, 'enabled', False):
+            return
+        try:
+            self._eval_inference_on_val(max_batches=getattr(cfg, 'max_batches', 1))
+        except Exception as e:
+            # Keep training robust; surface as debug log
+            if self.trainer is not None and self.trainer.logger is not None:
+                try:
+                    self.trainer.logger.log_text(key="infer_eval/error", columns=["msg"], data=[[str(e)]])
+                except Exception:
+                    pass
+
+    @torch.no_grad()
+    def _eval_inference_on_val(self, max_batches: int = 1) -> None:
+        """Run a lightweight inference check on the val loader using the inference wrapper.
+
+        Logs cosine similarity and reuse rate to the experiment logger with `infer/` prefix.
+        """
+        if self.trainer is None:
+            return
+
+        dl = self.trainer.datamodule.val_dataloader()
+        device = next(self.net.parameters()).device
+        infer = InferenceReuseModel(self.net).to(device)
+        infer.eval()
+
+        sim_meter = MeanMetric().to(device)
+        reuse_meter = MeanMetric().to(device)
+
+        for i, batch in enumerate(dl):
+            if i >= max_batches:
+                break
+            # Training/val batch format: (frame_idxs, pixel_values, compressed, ref_type, ref_mask)
+            (
+                frame_idxs,
+                pixel_values,
+                compressed,
+                ref_type,
+                ref_mask,
+            ) = batch
+
+            pixel_values = pixel_values.to(device)
+            compressed = compressed.to(device) if compressed is not None else None
+            ref_type = ref_type.to(device) if ref_type is not None else None
+            ref_mask = ref_mask.to(device) if ref_mask is not None else None
+
+            # Inference forward
+            out, maps, _, _ = infer(
+                pixel_values=pixel_values,
+                compressed=compressed,
+                ref_mask=ref_mask,
+                ref_type=ref_type,
+                output_hidden_states=False,
+            )
+
+            # Original outputs from base model
+            B, F, C, H, W = pixel_values.shape
+            pv = pixel_values.view(B * F, C, H, W)
+            orig = self.net.orig_model(pv, output_hidden_states=False)
+            if hasattr(orig, 'image_embeds'):
+                orig = orig.image_embeds
+            else:
+                orig = orig.pooler_output
+            orig = orig.view(B, F, -1)
+
+            sim = torch.cosine_similarity(out, orig, dim=-1).mean()
+
+            # Compute reuse rate over available maps
+            reuse_rates = []
+            if maps is not None:
+                for m in maps:
+                    if m is None:
+                        continue
+                    reuse_rates.append(m.float().mean(dim=(-1, -2)))
+            if len(reuse_rates) > 0:
+                reuse_rate = torch.mean(torch.stack(reuse_rates), dim=0).mean()
+            else:
+                reuse_rate = torch.tensor(0.0, device=device)
+
+            sim_meter.update(sim)
+            reuse_meter.update(reuse_rate)
+
+        # Log aggregated values
+        self.log("infer/val_sim", sim_meter.compute(), prog_bar=True)
+        self.log("infer/val_reuse_rate", reuse_meter.compute(), prog_bar=True)
+
     def test_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
         """Perform a single test step on a batch of data from the test set.
 
@@ -526,4 +615,3 @@ class VideoinstructLitModule(LightningModule):
                 },
             }
         return {"optimizer": optimizer}
-
