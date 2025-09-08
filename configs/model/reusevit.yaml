@@ -21,6 +21,7 @@ loss:
   sloss_scaler: 1.
   hloss_scaler: [0, 1.5] # Since VideoChatGPT wants to use second-to-last hidden states
   rloss_scaler: 0.35
+  dloss_scaler: 0.0
   max_reuse_per_layer: 0.95
   rloss_duplicate_final_frame: true
   target_reuse_rate: 0.5

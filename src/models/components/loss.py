@@ -15,6 +15,7 @@ class ReuseLoss(nn.Module):
         rloss_scaler: float = 1.0,
         max_reuse_per_layer: float = 1,
         rloss_duplicate_final_frame: bool = False,
+        dloss_scaler: float = 0.0,
     ):
         super().__init__()
         self.target_reuse_rate = target_reuse_rate
@@ -33,6 +34,7 @@ class ReuseLoss(nn.Module):
         self.rloss_scaler = rloss_scaler
         self.max_reuse_per_layer = max_reuse_per_layer
         self.rloss_duplicate_final_frame = rloss_duplicate_final_frame
+        self.dloss_scaler = dloss_scaler
 
     def forward(
         self,
@@ -80,6 +82,16 @@ class ReuseLoss(nn.Module):
 
         rloss = torch.relu(self.target_reuse_rate - reuse_rate)
 
+        # Delta-consistency loss (layer-wise update consistency)
+        dloss = torch.tensor(0.0, device=hidden_states.device)
+        if self.dloss_scaler > 0 and hidden_states.size(0) >= 2:
+            # Compute layer deltas and penalize the residual between true and reused deltas
+            # delta_true - delta_pred should be near zero if restoration calibrates correctly
+            delta_pred = hidden_states[1:] - hidden_states[:-1]              # [L-1, bsz, F, N, D]
+            delta_true = original_hidden_states[1:] - original_hidden_states[:-1]
+            delta_residual = delta_true - delta_pred                         # [L-1, bsz, F, N, D]
+            dloss = (delta_residual.pow(2)).mean()                           # MSE over all dims
+
         # We report final layer and second to last layer hidden state errors
         hidden_error = 1 - hidden_states_sim[-1].mean()
         if len(hidden_states_sim) > 1:
@@ -88,6 +100,6 @@ class ReuseLoss(nn.Module):
             hh_error = 0
         cls_error = 1 - output_sim.mean()
 
-        loss = self.sloss_scaler*sloss + sum(self.hloss_scaler*hloss) + self.rloss_scaler*rloss
+        loss = self.sloss_scaler*sloss + sum(self.hloss_scaler*hloss) + self.rloss_scaler*rloss + self.dloss_scaler*dloss
 
         return loss, hidden_error, hh_error, cls_error, reuse_rate, reuse_rate_per_frame
