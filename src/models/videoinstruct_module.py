@@ -307,6 +307,12 @@ class VideoinstructLitModule(LightningModule):
         if cfg is None or not getattr(cfg, 'enabled', False):
             return
         try:
+            # Compatibility check between training similarity and requested IWL similarity
+            target_sim = getattr(cfg, 'similarity', None)
+            ok, reason = self._check_iwl_compatibility(target_sim)
+            if not ok:
+                self._log_iwl_skip(reason)
+                return
             self._eval_inference_on_val(max_batches=getattr(cfg, 'max_batches', 1))
         except Exception as e:
             # Keep training robust; surface as debug log
@@ -324,9 +330,9 @@ class VideoinstructLitModule(LightningModule):
         """
         if self.trainer is None:
             return
-
+        # Always evaluate IWL on CPU
         dl = self.trainer.datamodule.val_dataloader()
-        device = next(self.net.parameters()).device
+        device = torch.device('cpu')
         infer = InferenceReuseModel(self.net).to(device)
         infer.eval()
 
@@ -362,7 +368,8 @@ class VideoinstructLitModule(LightningModule):
             # Original outputs from base model
             B, F, C, H, W = pixel_values.shape
             pv = pixel_values.view(B * F, C, H, W)
-            orig = self.net.orig_model(pv, output_hidden_states=False)
+            # Run reference model on CPU as well
+            orig = self.net.orig_model.to(device)(pv, output_hidden_states=False)
             if hasattr(orig, 'image_embeds'):
                 orig = orig.image_embeds
             else:
@@ -389,6 +396,47 @@ class VideoinstructLitModule(LightningModule):
         # Log aggregated values
         self.log("infer/val_sim", sim_meter.compute(), prog_bar=True)
         self.log("infer/val_reuse_rate", reuse_meter.compute(), prog_bar=True)
+
+    def _check_iwl_compatibility(self, requested_similarity: str | None) -> tuple[bool, str]:
+        """Ensure the current training model's similarity matches the requested IWL similarity.
+
+        requested_similarity can be a fully-qualified class path or a class name.
+        If None, we accept current training configuration.
+        """
+        # If user didn't specify a target similarity, consider it compatible
+        if not requested_similarity:
+            return True, ""
+
+        def class_name(x):
+            return x.__class__.__name__
+
+        # Pick any layer that has reuse enabled (skip first layer if disabled)
+        layers = self.net.model.vision_model.encoder.layers
+        sim_names = []
+        for lyr in layers:
+            if hasattr(lyr, 'reuse_module'):
+                sim_names.append(class_name(lyr.reuse_module.similarity_module))
+        if not sim_names:
+            return False, "IWL skipped: no reuse_module/similarity found"
+
+        req_cls = requested_similarity.split('.')[-1]
+        # Require all reuse layers to match requested class
+        if all(name == req_cls for name in sim_names):
+            return True, ""
+        return False, f"IWL skipped: similarity mismatch (requested={req_cls}, model={sim_names[0]})"
+
+    def _log_iwl_skip(self, reason: str) -> None:
+        # Best-effort: log a one-line message
+        try:
+            if self.trainer and self.trainer.logger and hasattr(self.trainer.logger, 'log_text'):
+                self.trainer.logger.log_text(key="infer_eval/skip", columns=["reason"], data=[[reason]])
+        except Exception:
+            pass
+        # Also print to console for visibility
+        try:
+            self.print(reason)
+        except Exception:
+            pass
 
     def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         """Optionally prune checkpoint to keep only decision/restoration weights.

@@ -6,6 +6,7 @@ import torch
 
 from src.inference import InferenceReuseModel
 from src.utils.weight_adapter import map_training_to_inference_keys
+from src.models.videoinstruct_module import VideoinstructLitModule
 
 
 class TinyToy(torch.nn.Module):
@@ -98,3 +99,53 @@ def test_numerical_sanity_forward(monkeypatch):
     out_train = base(x)
     out_infer, _, _, _ = infer(pixel_values=x)
     assert torch.allclose(out_train, out_infer, atol=1e-5, rtol=1e-4)
+
+
+def test_iwl_compatibility_checks():
+    # Build a tiny module to exercise the compatibility helper
+    class _DummySim(torch.nn.Module):
+        pass
+
+    class _Layer(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            class _RM(torch.nn.Module):
+                def __init__(self):
+                    super().__init__()
+                    self.similarity_module = _DummySim()
+            self.reuse_module = _RM()
+
+    class _Net(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            class _Enc(torch.nn.Module):
+                def __init__(self):
+                    super().__init__()
+                    self.layers = torch.nn.ModuleList([_Layer(), _Layer()])
+            class _VM(torch.nn.Module):
+                def __init__(self):
+                    super().__init__()
+                    self.encoder = _Enc()
+                def forward(self, x, **kwargs):
+                    return x
+            self.model = type('M', (), {})()
+            self.model.vision_model = _VM()
+            self.orig_model = torch.nn.Identity()
+
+    m = VideoinstructLitModule(
+        net=_Net(),
+        loss=torch.nn.Identity(),
+        optimizer=torch.optim.SGD,
+        scheduler=None,
+        blobnet_lr=0.0,
+        restoration_lr=0.0,
+        decision_lr=0.0,
+        rloss_pattern=[True],
+        sloss_pattern=[True],
+        compile=False,
+        gating_hard=False,
+    )
+    ok, reason = m._check_iwl_compatibility("src.models.components.reuse.similarity.LocalCosineSimilarity")
+    assert not ok and "mismatch" in reason
+    ok2, _ = m._check_iwl_compatibility(_DummySim.__name__)
+    assert ok2

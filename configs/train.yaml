@@ -53,6 +53,7 @@ seed: null
 eval_infer:
   enabled: false
   max_batches: 1
+  backend: local
 
 # Slim checkpoints: keep only decision/restoration weights
 checkpoint:
