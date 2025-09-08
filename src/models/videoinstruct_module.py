@@ -141,6 +141,9 @@ class VideoinstructLitModule(LightningModule):
             ref_type,
             ref_mask,
         ) = batch
+        # Compute annealed temperature if configured
+        tau = self._current_tau()
+
         output, reuse_maps, hidden_states = self.net(
             pixel_values,
             compressed=compressed,
@@ -148,6 +151,7 @@ class VideoinstructLitModule(LightningModule):
             ref_mask=ref_mask,
             output_hidden_states=True,
             hard=self.hparams.gating_hard,
+            tau=tau,
         )
 
         if self.hparams.sloss_pattern is not None:
@@ -181,6 +185,20 @@ class VideoinstructLitModule(LightningModule):
             original_output,
             reuse_maps,
         )
+
+    def _current_tau(self):
+        sched = getattr(self.hparams, 'temperature_schedule', None)
+        if not sched:
+            return None
+        start = sched.get('start', None)
+        end = sched.get('end', None)
+        if start is None or end is None or self.trainer is None or self.trainer.max_epochs is None:
+            return None
+        # Linear schedule over epochs [0, max_epochs)
+        e = float(self.current_epoch)
+        E = max(1.0, float(self.trainer.max_epochs - 1))
+        alpha = min(max(e / E, 0.0), 1.0)
+        return float(start + (end - start) * alpha)
 
     def test_model_step(
         self, batch: Tuple[torch.Tensor, torch.Tensor]

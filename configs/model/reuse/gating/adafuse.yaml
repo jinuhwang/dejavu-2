@@ -1,3 +1,4 @@
 _target_: src.models.components.reuse.gating.AdafuseGating
 
-tau: 0.025  
+tau: 0.025
+gating_scheduling: true

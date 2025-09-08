@@ -38,6 +38,12 @@ compile: false
 
 gating_hard: false
 
+# Optional temperature schedule for gating (linear across epochs)
+# Set both to enable, e.g., start: 2.0, end: 0.5
+temperature_schedule:
+  start: null
+  end: null
+
 batch_size: "${data.batch_size}"
 
 dataset: "${data.dataset_str}"
