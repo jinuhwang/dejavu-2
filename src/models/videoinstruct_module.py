@@ -307,13 +307,18 @@ class VideoinstructLitModule(LightningModule):
         if cfg is None or not getattr(cfg, 'enabled', False):
             return
         try:
-            # Compatibility check between training similarity and requested IWL similarity
+            # Check similarity compatibility and runtime requirements
             target_sim = getattr(cfg, 'similarity', None)
             ok, reason = self._check_iwl_compatibility(target_sim)
             if not ok:
                 self._log_iwl_skip(reason)
                 return
-            self._eval_inference_on_val(max_batches=getattr(cfg, 'max_batches', 1))
+            device = getattr(cfg, 'device', 'cuda')
+            ok2, reason2 = self._check_runtime_requirements(device)
+            if not ok2:
+                self._log_iwl_skip(reason2)
+                return
+            self._eval_inference_on_val(max_batches=getattr(cfg, 'max_batches', 1), device=device)
         except Exception as e:
             # Keep training robust; surface as debug log
             if self.trainer is not None and self.trainer.logger is not None:
@@ -323,17 +328,16 @@ class VideoinstructLitModule(LightningModule):
                     pass
 
     @torch.no_grad()
-    def _eval_inference_on_val(self, max_batches: int = 1) -> None:
+    def _eval_inference_on_val(self, max_batches: int = 1, device: str = 'cuda') -> None:
         """Run a lightweight inference check on the val loader using the inference wrapper.
 
         Logs cosine similarity and reuse rate to the experiment logger with `infer/` prefix.
         """
         if self.trainer is None:
             return
-        # Always evaluate IWL on CPU
         dl = self.trainer.datamodule.val_dataloader()
-        device = torch.device('cpu')
-        infer = InferenceReuseModel(self.net).to(device)
+        dev = torch.device(device)
+        infer = InferenceReuseModel(self.net).to(dev)
         infer.eval()
 
         sim_meter = MeanMetric().to(device)
@@ -351,10 +355,10 @@ class VideoinstructLitModule(LightningModule):
                 ref_mask,
             ) = batch
 
-            pixel_values = pixel_values.to(device)
-            compressed = compressed.to(device) if compressed is not None else None
-            ref_type = ref_type.to(device) if ref_type is not None else None
-            ref_mask = ref_mask.to(device) if ref_mask is not None else None
+            pixel_values = pixel_values.to(dev)
+            compressed = compressed.to(dev) if compressed is not None else None
+            ref_type = ref_type.to(dev) if ref_type is not None else None
+            ref_mask = ref_mask.to(dev) if ref_mask is not None else None
 
             # Inference forward
             out, maps, _, _ = infer(
@@ -368,8 +372,8 @@ class VideoinstructLitModule(LightningModule):
             # Original outputs from base model
             B, F, C, H, W = pixel_values.shape
             pv = pixel_values.view(B * F, C, H, W)
-            # Run reference model on CPU as well
-            orig = self.net.orig_model.to(device)(pv, output_hidden_states=False)
+            # Run reference model on the same device
+            orig = self.net.orig_model.to(dev)(pv, output_hidden_states=False)
             if hasattr(orig, 'image_embeds'):
                 orig = orig.image_embeds
             else:
@@ -388,7 +392,7 @@ class VideoinstructLitModule(LightningModule):
             if len(reuse_rates) > 0:
                 reuse_rate = torch.mean(torch.stack(reuse_rates), dim=0).mean()
             else:
-                reuse_rate = torch.tensor(0.0, device=device)
+                reuse_rate = torch.tensor(0.0, device=dev)
 
             sim_meter.update(sim)
             reuse_meter.update(reuse_rate)
@@ -429,7 +433,7 @@ class VideoinstructLitModule(LightningModule):
         # Best-effort: log a one-line message
         try:
             if self.trainer and self.trainer.logger and hasattr(self.trainer.logger, 'log_text'):
-                self.trainer.logger.log_text(key="infer_eval/skip", columns=["reason"], data=[[reason]])
+                self.trainer.logger.log_text(key="inloop_infer/skip", columns=["reason"], data=[[reason]])
         except Exception:
             pass
         # Also print to console for visibility
@@ -437,6 +441,20 @@ class VideoinstructLitModule(LightningModule):
             self.print(reason)
         except Exception:
             pass
+
+    def _check_runtime_requirements(self, device: str) -> tuple[bool, str]:
+        dev = (device or 'cuda').lower()
+        if dev.startswith('cuda'):
+            import importlib
+            if not torch.cuda.is_available():
+                return False, "In-loop inference skipped: GPU (CUDA) not available"
+            try:
+                importlib.import_module('triton')
+            except Exception:
+                return False, "In-loop inference skipped: Triton not available"
+            return True, ""
+        # Only CUDA is supported for in-loop inference path
+        return False, "In-loop inference skipped: device not supported (requires CUDA)"
 
     def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         """Optionally prune checkpoint to keep only decision/restoration weights.

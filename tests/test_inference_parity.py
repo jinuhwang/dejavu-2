@@ -149,3 +149,24 @@ def test_iwl_compatibility_checks():
     assert not ok and "mismatch" in reason
     ok2, _ = m._check_iwl_compatibility(_DummySim.__name__)
     assert ok2
+
+
+def test_inloop_infer_runtime_checks_gpu_required(monkeypatch):
+    # Build minimal module just to call runtime checks
+    m = VideoinstructLitModule(
+        net=torch.nn.Identity(),
+        loss=torch.nn.Identity(),
+        optimizer=torch.optim.SGD,
+        scheduler=None,
+        blobnet_lr=0.0,
+        restoration_lr=0.0,
+        decision_lr=0.0,
+        rloss_pattern=[True],
+        sloss_pattern=[True],
+        compile=False,
+        gating_hard=False,
+    )
+    # Force CUDA unavailable path
+    monkeypatch.setattr(torch.cuda, 'is_available', lambda: False)
+    ok, reason = m._check_runtime_requirements('cuda')
+    assert not ok and 'CUDA' in reason
