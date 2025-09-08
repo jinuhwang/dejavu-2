@@ -390,6 +390,37 @@ class VideoinstructLitModule(LightningModule):
         self.log("infer/val_sim", sim_meter.compute(), prog_bar=True)
         self.log("infer/val_reuse_rate", reuse_meter.compute(), prog_bar=True)
 
+    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        """Optionally prune checkpoint to keep only decision/restoration weights.
+
+        Controlled by hparam checkpoint.save_trainable_only and
+        checkpoint.keep_patterns (list of substrings to keep).
+        """
+        cfg = getattr(self.hparams, 'checkpoint', None)
+        if not cfg or not cfg.get('save_trainable_only', False):
+            return
+        keep_patterns = cfg.get('keep_patterns', [
+            'reuse_module.decision',
+            'reuse_module.restoration',
+        ])
+        # Attach minimal reconstruction metadata
+        checkpoint.setdefault('meta', {})
+        checkpoint['meta'].update({
+            'slim': True,
+            'base_model_name': self.hparams.base_model_name,
+            'model_type': getattr(self.hparams, 'dataset', ''),
+        })
+
+        state = checkpoint.get('state_dict', {})
+        pruned = {}
+        for k, v in state.items():
+            if any(pat in k for pat in keep_patterns):
+                pruned[k] = v
+        checkpoint['state_dict'] = pruned
+        # Drop optimizer and scheduler states to further reduce size
+        checkpoint.pop('optimizer_states', None)
+        checkpoint.pop('lr_schedulers', None)
+
     def test_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
         """Perform a single test step on a batch of data from the test set.
 

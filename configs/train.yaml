@@ -53,3 +53,11 @@ seed: null
 eval_infer:
   enabled: false
   max_batches: 1
+
+# Slim checkpoints: keep only decision/restoration weights
+checkpoint:
+  # Default to slim checkpoints: base model reconstructed from Hugging Face
+  save_trainable_only: true
+  keep_patterns:
+    - 'reuse_module.'
+    - 'blobnet'

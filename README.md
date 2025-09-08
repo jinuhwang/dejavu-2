@@ -27,6 +27,8 @@ This repository contains artifact for the paper "Déjà Vu: Efficient Video-Lang
 - Inference utilities:
   - Wrapper: `from src.inference import InferenceReuseModel` and call it like `ReuseModel.forward_eval`.
   - Checkpoint remap: `python -m src.scripts.remap_checkpoint input.ckpt output_remapped.pt --report remap_report.json`
+  - Reconstruct from slim: `python -m src.scripts.reconstruct_from_slim slim.ckpt full.ckpt --report recon_report.json`
+    - Uses `meta.base_model_name` (or `--base_model_name`) to load the base from Hugging Face, applies slim weights (decision/restoration/blobnet), and saves a full Lightning-style checkpoint.
 
 - Triton kernels and hard path:
   - Kernels: `src/models/components/stage_states.py` (Triton). Hard path model: `model/net=clip-vit-large-patch14-hard`.
@@ -35,6 +37,12 @@ This repository contains artifact for the paper "Déjà Vu: Efficient Video-Lang
 - Tests:
   - Run all: `pytest -q`
   - Parity tests validate training/inference consistency and state-dict mapping on CPU; Triton tests run on GPU when available.
+
+## Slim Checkpoints (Default)
+
+- By default, checkpoints keep only trainable layers (decision/restoration/blobnet) plus optimizer/scheduler states.
+- Base model weights are not saved (reconstructed from `base_model_name` on Hugging Face).
+- Turn off if you need full checkpoints: `checkpoint.save_trainable_only=false`.
 
 ### 1. Prerequisites
 #### 1-1. Clone and build docker image
