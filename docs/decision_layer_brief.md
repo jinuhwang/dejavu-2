@@ -63,6 +63,13 @@ This brief summarizes where the reuse/decision layer sits, how class vs non-clas
 - Enable delta‑consistency with `dloss_scaler=0.5` to protect the per‑layer transform.
 - Scheduling: enable reuse on fewer layers initially; ramp over epochs.
 
+### Additional variants to try (planned)
+- Prefer scaling decision & restoration width over backbone changes:
+  - Decision MLP width: `inner_dim` → 256–384 (see `configs/model/reuse/decision/*.yaml`).
+  - Restoration MLP width: `inner_dim` → 384 (see `configs/model/reuse/restoration/mlp.yaml`).
+- Add dropout in the decision MLP to reduce over‑confident reuse:
+  - Set `dropout: 0.1–0.2` in the decision config (e.g., `mlp.yaml` or `mlp_uncertainty.yaml`).
+
 ## Code Pointers
 - Decision MLP: `src/models/components/reuse/decision.py` (MLP built from `layer_pattern`).
 - CLS handling & gating: `src/models/components/reuse/module.py` (`skip_cls`, re‑attach).
