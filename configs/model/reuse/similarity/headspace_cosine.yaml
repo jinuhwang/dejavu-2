@@ -1,0 +1,8 @@
+_target_: src.models.components.reuse.similarity.HeadSpaceCosineSimilarity
+
+input_dim: "${model.net.input_dim}"
+proj_dim: 64
+num_heads: 2
+exp: 1
+freeze: true
+return_norm: false

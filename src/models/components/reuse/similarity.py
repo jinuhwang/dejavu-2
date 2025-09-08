@@ -198,3 +198,44 @@ class LowRankCosineSimilarity(nn.Module):
         similarity = similarity ** self.exp
 
         return similarity, lhs_norm
+
+
+class HeadSpaceCosineSimilarity(nn.Module):
+    """
+    Project tokens into a lightweight head space (Q/K-style) and compute cosine similarity.
+
+    - Two learned Linear projections (Wq, Wk): D -> (H*d)
+    - Optionally frozen (for lightweight probes) via freeze=True
+    - Aggregates head-wise cosine by mean over heads to return [B, N_lhs, N_rhs]
+    """
+    def __init__(self, input_dim=768, proj_dim=64, num_heads=2, exp=1, freeze=True, return_norm=False):
+        super().__init__()
+        self.input_dim = input_dim
+        self.proj_dim = proj_dim
+        self.num_heads = num_heads
+        self.exp = exp
+        self.return_norm = return_norm
+
+        out_dim = num_heads * proj_dim
+        self.q_proj = nn.Linear(input_dim, out_dim)
+        self.k_proj = nn.Linear(input_dim, out_dim)
+
+        if freeze:
+            for p in self.parameters():
+                p.requires_grad_(False)
+
+    def forward(self, lhs, rhs, **kwargs):
+        B, Nl, D = lhs.shape
+        _, Nr, _ = rhs.shape
+        H, d = self.num_heads, self.proj_dim
+
+        q = self.q_proj(lhs).view(B, Nl, H, d).transpose(1, 2).reshape(B * H, Nl, d)
+        k = self.k_proj(rhs).view(B, Nr, H, d).transpose(1, 2).reshape(B * H, Nr, d)
+
+        q = normalize_vector(q)
+        k = normalize_vector(k)
+        sim = q @ k.transpose(-1, -2)   # [B*H, Nl, Nr]
+        sim = sim.view(B, H, Nl, Nr).mean(dim=1)  # aggregate heads -> [B, Nl, Nr]
+        sim = sim ** self.exp
+
+        return sim, None
