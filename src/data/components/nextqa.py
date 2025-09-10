@@ -17,6 +17,38 @@ import rootutils
 rootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
 from ...utils.paths import get_path_manager
+from pathlib import Path
+
+def _resolve_map_path(path_manager):
+    """Return an existing map path, trying a repo fallback if needed.
+
+    Prefers configured path (paths['nextqa']['map']). If missing, tries
+    `${paths.root_dir}/dataset/nextqa/map_vid_vidorID.json`. Raises
+    FileNotFoundError with both attempted paths if not found.
+    """
+    configured = path_manager.paths['nextqa']['map']
+    if isinstance(configured, str):
+        configured = Path(configured)
+    if configured.exists():
+        return configured
+
+    # Fallback to repo dataset copy under PROJECT_ROOT (set by rootutils)
+    import os
+    proj_root = os.environ.get('PROJECT_ROOT', None)
+    candidates = []
+    if proj_root:
+        candidates.append(Path(proj_root) / 'dataset' / 'nextqa' / 'map_vid_vidorID.json')
+    # Also try a conventional workspace path
+    candidates.append(Path('/workspace/dataset/nextqa/map_vid_vidorID.json'))
+    for c in candidates:
+        if c.exists():
+            return c
+
+    raise FileNotFoundError(
+        f"NextQA map file not found. Tried: {[str(p) for p in [configured]+candidates]}. "
+        "Update configs/paths/data.yaml or set paths.data_dir to the correct base."
+    )
+
 
 def read_csv(split_or_path):
     path_manager = get_path_manager()
@@ -27,24 +59,31 @@ def read_csv(split_or_path):
         path = split_or_path
 
     # load the map from vid to vidorID
-    with open(path_manager.paths['nextqa']['map'], 'r') as f:
+    map_path = _resolve_map_path(path_manager)
+    with open(map_path, 'r') as f:
         map_vid_vidorID = json.load(f)
 
-    if split_or_path == 'test':
-        df = pd.read_csv(
-            path,
-            dtype={
-                'video_id': str,
-            }
-        )
-        df['video'] = df['video_id']
-    else:
-        df = pd.read_csv(
-            path,
-            dtype={
-                'video': str,
-            }
-        )
+    try:
+        if split_or_path == 'test':
+            df = pd.read_csv(
+                path,
+                dtype={
+                    'video_id': str,
+                }
+            )
+            df['video'] = df['video_id']
+        else:
+            df = pd.read_csv(
+                path,
+                dtype={
+                    'video': str,
+                }
+            )
+    except FileNotFoundError as e:
+        raise FileNotFoundError(
+            f"NextQA split CSV not found at {path}. Set paths.data_dir to your datasets base "
+            f"(currently {path_manager.paths.get('data_dir')}) or override configs/paths/data.yaml."
+        ) from e
 
     # Add column as vidorID
     df['vidorID'] = df['video'].map(lambda x: map_vid_vidorID[x])
@@ -147,14 +186,39 @@ def main(cfg):
     from ...utils.paths import get_path_manager
     path_manager = get_path_manager(cfg.paths)
 
+    # Resolve fields from existing config to avoid struct errors when keys are missing at root.
+    # Prefer data.* and model.* sources, fall back to root if provided.
+    def pick(*candidates, default=None):
+        for c in candidates:
+            try:
+                # OmegaConf provides .get; attribute access may raise on struct
+                if isinstance(c, tuple):
+                    node, key = c
+                    val = node.get(key, None)
+                else:
+                    val = c
+                if val is not None:
+                    return val
+            except Exception:
+                continue
+        return default
+
+    split = pick(cfg.get("split", None), cfg.data.get("split", None), cfg.data.get("val_split", None), default="val")
+    base_model_name = pick(cfg.get("base_model_name", None), cfg.data.get("base_model_name", None), cfg.model.net.base_model_name)
+    fps = pick(cfg.get("fps", None), cfg.data.get("fps", None))
+    return_compressed = bool(pick(cfg.get("return_compressed", None), cfg.data.get("return_compressed", None), default=False))
+    regenerate = bool(cfg.get("regenerate_dataset_info", False))
+
     TEST_STEP = 500
 
+    print(f"NextQA dataset build — split={split}, base_model={base_model_name}, fps={fps}, return_compressed={return_compressed}, regenerate={regenerate}")
+
     dataset = NextqaDataset(
-        split=cfg.split,
-        base_model_name=cfg.base_model_name,
-        fps=cfg.fps,
-        return_compressed=cfg.return_compressed,
-        reuse_dataset_info=not cfg.regenerate_dataset_info,
+        split=split,
+        base_model_name=base_model_name,
+        fps=fps,
+        return_compressed=return_compressed,
+        reuse_dataset_info=not regenerate,
     )
 
     print(f'len: {len(dataset)}')

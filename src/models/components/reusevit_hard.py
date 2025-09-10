@@ -427,6 +427,8 @@ class ReuseViTHard(nn.Module):
         model = CLIPVisionModelWithProjection.from_pretrained(
             base_model_name,
             cache_dir=cache_dir,
+            use_safetensors=True,
+            low_cpu_mem_usage=True,
         )
         config = model.config
 

@@ -9,6 +9,9 @@ from tqdm import tqdm
 from pathlib import Path
 import rootutils
 
+import rootutils
+rootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
+
 from ..utils.dataset import ray_get_with_tqdm
 
 rootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)

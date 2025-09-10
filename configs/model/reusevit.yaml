@@ -18,6 +18,9 @@ loss:
   _target_: src.models.components.loss.ReuseLoss
   use_min_hloss: true
   use_min_sloss: true
+  hidden_loss_type: cosine  # options: cosine | mse
+  output_loss_type: cosine  # options: cosine | mse
+  detach_targets: true
   sloss_scaler: 1.
   hloss_scaler: [0, 1.5] # Since VideoChatGPT wants to use second-to-last hidden states
   rloss_scaler: 0.35

@@ -55,6 +55,19 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     if cfg.get("seed"):
         L.seed_everything(cfg.seed, workers=True)
 
+    # Perf knobs: enable TF32 and high matmul precision where available
+    try:
+        torch.set_float32_matmul_precision("high")
+    except Exception:
+        pass
+    if torch.cuda.is_available():
+        try:
+            torch.backends.cuda.matmul.allow_tf32 = True
+            torch.backends.cudnn.allow_tf32 = True
+            torch.backends.cudnn.benchmark = True
+        except Exception:
+            pass
+
     path_manager = get_path_manager(cfg.paths)
 
     log.info(f"Instantiating datamodule <{cfg.data._target_}>")
@@ -88,7 +101,8 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     if cfg.get("train"):
         for l in logger:
             if isinstance(l, WandbLogger):
-                l.watch(model, log="all")
+                # Reduce overhead from excessive logging
+                l.watch(model, log="gradients", log_freq=200)
                 break
         log.info("Starting training!")
         trainer.fit(model=model, datamodule=datamodule, ckpt_path=cfg.get("ckpt_path"))

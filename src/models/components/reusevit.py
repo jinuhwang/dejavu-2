@@ -190,13 +190,18 @@ class ReuseModel(nn.Module):
         else:
             raise NotImplementedError(f'Unknown model type: {model_type}')
 
+        # Prefer safetensors to avoid torch.load vulnerability requirements
         self.orig_model = model_cls.from_pretrained(
             base_model_name,
             cache_dir=cache_dir,
+            use_safetensors=True,
+            low_cpu_mem_usage=True,
         )
         model = model_cls.from_pretrained(
             base_model_name,
             cache_dir=cache_dir,
+            use_safetensors=True,
+            low_cpu_mem_usage=True,
         )
 
         config = model.config

@@ -15,8 +15,8 @@ import hydra
 
 import rootutils
 
-from src.utils.dataset import get_resolution
 rootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
+from src.utils.dataset import get_resolution
 
 
 class AvgPoolConv(nn.Module):

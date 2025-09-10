@@ -31,7 +31,7 @@ pandas
 joblib
 transformers
 peft
-datasets
+datasets>=4.0.0  # for compatibility with newer pyarrow (>=20)
 yt-dlp[default]
 motion-vector-extractor
 termplotlib

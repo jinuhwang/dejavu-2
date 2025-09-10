@@ -3,6 +3,7 @@ import pytest
 import torch
 
 import hydra
+from pathlib import Path
 from omegaconf import OmegaConf
 from hydra.utils import instantiate
 

@@ -1,4 +1,4 @@
-# path to data directory
+# Default root and data directories (set to project workspace)
 root_dir: '/workspace'
 data_dir: '/mnt/raid/jwhwang/dejavu'
 cache_dir: ${.data_dir}/cache
@@ -12,9 +12,9 @@ how2qa:
   feature: ${..data_dir}/dataset/how2qa/feature
   reuse: ${..data_dir}/dataset/how2qa/reuse
   splits:
-    train: '${...root_dir}/dataset/how2QA_train_release.csv'
-    test: '${...root_dir}/dataset/how2QA_test_public_release.csv'
-    frozenbilm: '${...root_dir}/dataset/public_val.csv'
+    train: '${...data_dir}/dataset/how2QA_train_release.csv'
+    test: '${...data_dir}/dataset/how2QA_test_public_release.csv'
+    frozenbilm: '${...data_dir}/dataset/public_val.csv'
 
 msrvtt:
   video: ${..data_dir}/dataset/msrvtt/video
@@ -24,8 +24,8 @@ msrvtt:
   feature: ${..data_dir}/dataset/msrvtt/feature
   reuse: ${..data_dir}/dataset/msrvtt/reuse
   splits:
-    train: '${...root_dir}/dataset/MSRVTT_train.9k.csv'
-    test: '${...root_dir}/dataset/MSRVTT_JSFUSION_test.csv'
+    train: '${...data_dir}/dataset/MSRVTT_train.9k.csv'
+    test: '${...data_dir}/dataset/MSRVTT_JSFUSION_test.csv'
   checkpoint: '/mnt/ssd3/CLIP4Clip/ckpts/ckpt_msrvtt_retrieval_looseType/best_hf_model'
 
 

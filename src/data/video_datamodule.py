@@ -107,6 +107,8 @@ class VideoDataModule(LightningDataModule):
             batch_size=self.hparams.batch_size,
             num_workers=self.hparams.num_workers,
             pin_memory=self.hparams.pin_memory,
+            persistent_workers=self.hparams.num_workers > 0,
+            drop_last=True,
             shuffle=True,
         )
 
@@ -116,6 +118,7 @@ class VideoDataModule(LightningDataModule):
             batch_size=self.hparams.batch_size,
             num_workers=self.hparams.num_workers,
             pin_memory=self.hparams.pin_memory,
+            persistent_workers=self.hparams.num_workers > 0,
             shuffle=False,
         )
 
@@ -125,5 +128,6 @@ class VideoDataModule(LightningDataModule):
             batch_size=self.hparams.batch_size,
             num_workers=self.hparams.num_workers,
             pin_memory=self.hparams.pin_memory,
+            persistent_workers=self.hparams.num_workers > 0,
             shuffle=False,
         )

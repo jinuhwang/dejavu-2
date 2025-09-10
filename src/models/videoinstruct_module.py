@@ -68,6 +68,7 @@ class VideoinstructLitModule(LightningModule):
         cmc_threshold: float = 170,
         reuse_model_name: str = None,
         debug: bool = False,
+        temperature_schedule: dict | None = None,
     ) -> None:
         """Initialize a `MNISTLitModule`.
 
@@ -264,7 +265,7 @@ class VideoinstructLitModule(LightningModule):
         :param batch_idx: The index of the current batch.
         :return: A tensor of losses between model predictions and targets.
         """
-        loss, hidden_error, hh_error, cls_error, reuse_rate, reuse_rate_per_frame = self.model_step(batch)
+        loss, hidden_error, hh_error, cls_error, reuse_rate, delta_loss, reuse_rate_per_frame = self.model_step(batch)
 
         # update and log metrics
         self.train_loss(loss)
@@ -277,6 +278,8 @@ class VideoinstructLitModule(LightningModule):
         self.log("train/hh_error", self.train_hh_error, on_step=True, on_epoch=True, prog_bar=True)
         self.log("train/cls_error", self.train_cls_error, on_step=True, on_epoch=True, prog_bar=True)
         self.log("train/reuse_rate", self.train_reuse_rate, on_step=True, on_epoch=True, prog_bar=True)
+        # Log delta-consistency loss (raw, unscaled)
+        self.log("train/delta_loss", delta_loss, on_step=True, on_epoch=True, prog_bar=False)
 
         # return loss or backpropagation will fail
         return loss
@@ -300,7 +303,7 @@ class VideoinstructLitModule(LightningModule):
             labels.
         :param batch_idx: The index of the current batch.
         """
-        loss, hidden_error, hh_error, cls_error, reuse_rate, reuse_rate_per_frame = self.model_step(batch)
+        loss, hidden_error, hh_error, cls_error, reuse_rate, delta_loss, reuse_rate_per_frame = self.model_step(batch)
 
         # update and log metrics
         self.val_loss(loss)
@@ -313,6 +316,8 @@ class VideoinstructLitModule(LightningModule):
         self.log("val/hh_error", self.val_hh_error, on_step=False, on_epoch=True, prog_bar=True)
         self.log("val/cls_error", self.val_cls_error, on_step=False, on_epoch=True, prog_bar=True)
         self.log("val/reuse_rate", self.val_reuse_rate, on_step=False, on_epoch=True, prog_bar=True)
+        # Log delta-consistency loss (raw, unscaled)
+        self.log("val/delta_loss", delta_loss, on_step=False, on_epoch=True, prog_bar=False)
 
     def on_validation_epoch_end(self) -> None:
         "Lightning hook that is called when a validation epoch ends."

@@ -8,9 +8,9 @@ import subprocess
 import hydra
 
 import rootutils
+rootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
 from src.utils.dataset import get_resolution
-rootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
 @ray.remote(num_cpus=4)
 def run_transcode(input_path, output_path, log_path, resolution, fps, start_end=None, dry_run=False, overwrite=False):

@@ -13,10 +13,10 @@ import os
 from tqdm import tqdm
 
 import rootutils
+rootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
 from ..utils.dataset import get_resolution
 from ..models.components.diffrate import create_diffrate_model
-rootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
 class VideoProcessor:
     def __init__(
@@ -250,7 +250,11 @@ def main(cfg):
     from ..models.components.clip import CLIPVisionModelWithProjection
     parser = argparse.ArgumentParser()
 
-    target_features = cfg.target_features.split(',')
+    # Accept either a comma-separated string ("i,h,o") or a list [i,h,o]
+    if isinstance(cfg.target_features, str):
+        target_features = [t.strip() for t in cfg.target_features.split(',') if t.strip()]
+    else:
+        target_features = list(cfg.target_features)
     print(f'Extracting features: {target_features}')
 
     if cfg.use_mixed_precision:
@@ -396,6 +400,11 @@ def main(cfg):
 
     #     youtube_ids, video_paths = split_per_rank(rank, world_size, youtube_ids, video_paths)
 
+    # Pre-download processor and model to avoid concurrent fetches by Ray actors
+    _ = processor_factory()
+    _m = model_factory()
+    del _
+    del _m
 
     if cfg.num_gpus > 0:
         device = 'cuda'

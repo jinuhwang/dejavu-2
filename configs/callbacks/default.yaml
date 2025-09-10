@@ -17,6 +17,8 @@ early_stopping:
   monitor: "val/loss"
   patience: 7
   mode: "min"
+  # Ensure early stopping checks after validation, when val metrics exist
+  check_on_train_epoch_end: false
 
 model_summary:
   max_depth: -1

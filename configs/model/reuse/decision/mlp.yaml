@@ -7,3 +7,8 @@ use_reference_type: True
 inner_dim: 160
 layer_pattern: 'lbrlbrl'
 use_compressed_info: true
+# Local context feature options
+local_ctx_mode: none    # none | conv | neighbors
+local_ctx_rank: 32
+local_ctx_kernel: 3
+local_ctx_dropout: 0.0

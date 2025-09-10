@@ -156,3 +156,4 @@ configs/local/default.yaml
 *.csv
 *.pdf
 *.png
+cache/

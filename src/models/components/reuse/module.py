@@ -83,12 +83,24 @@ class ReuseModule(nn.Module):
         similarity = similarity.view(B, lhs_N, -1)
 
         importance = self.importance_module(attn_weights)
+
+        # Optional local context features for decision MLP (A/B modes)
+        local_ctx = None
+        if hasattr(self.decision_module, 'build_local_ctx') and getattr(self.decision_module, 'local_ctx_mode', 'none') != 'none':
+            # pre_proj has already been trimmed to exclude CLS when skip_cls=True above
+            tokens_no_cls = pre_proj
+            try:
+                local_ctx = self.decision_module.build_local_ctx(tokens_no_cls)
+            except Exception:
+                local_ctx = None
+
         reuse_decision, most_similar_idx, _ = self.decision_module(
             importance=importance,
             similarity=similarity if norm is None else (similarity, norm),
             compressed_map=compressed_map,
             ref_type=ref_type,
             prev_reuse_map=prev_reuse_map,
+            local_ctx=local_ctx,
         )
 
         # Gather most similar inputs
